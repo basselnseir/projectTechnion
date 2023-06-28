@@ -1,0 +1,36 @@
+from instruction_set import *
+#ADD X,Y,Z
+#BLOCKS = [(PUSH, 4), (PUSH, 10), (PUSH, 6), (POP, 2), (ALU, AOP.ADD), (POP, 2), (ALU, AOP.ADD), (POP, 1)] 
+
+# Yank test
+BLOCKS = [('PUSH', 'end'),
+ ('PUSH', 3),
+ ('PUSH', 1),
+ ('JMP', 'pow2'),
+ 'end',
+ ('POP', 1),
+ ('HALT', 0),
+ 'pow2',
+ ('PUSH', 0),
+ ('DUP', 2),
+ ('POP', 2),
+ ('ALU', 'LT'),
+ ('POP', 1),
+ ('JZ', 'pow2:0'),
+ ('DUP', 1),
+ ('PUSH', 1),
+ ('POP', 2),
+ ('ALU', 'SUB'),
+ ('DUP', 1),
+ ('PUSH', 2),
+ ('POP', 2),
+ ('ALU', 'MUL'),
+ ('YANK', (2, 2)),
+ ('JMP', 'pow2'),
+ ('JMP', 'pow2:1'),
+ 'pow2:0',
+ ('DUP', 0),
+ 'pow2:1',
+ ('YANK', (1, 2)),
+ ('POP', 2),
+ ('RET', 1)]

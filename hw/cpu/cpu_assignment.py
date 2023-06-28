@@ -11,9 +11,13 @@ import boilerplate
 import alu_assignment
 
 import pyrtl
+import ctypes
 
 from pyrtl import *
-from assembler import asm, disasm, disasm_pretty
+from assembler import asm, disasm, disasm_pretty, asm_bin
+
+import periph
+from periph import gpio_adapter
 
 import z3
 z3.set_param(proof=True)
@@ -24,20 +28,25 @@ z3.set_param(proof=True)
 
 from instruction_set import *
 from test1 import BLOCKS
-
+from Bootloader import BOOTLOADER_BLOCKS
 
 reset_working_block()
 
-a = asm(BLOCKS, start_addr=0x5400)    
+romFile = asm(BOOTLOADER_BLOCKS, start_addr=0)  
+ramFile = asm(BLOCKS, start_addr=0)
+ramFile.save_bin('ramFile.bin')
 
+binary_list = [bin(num)[2:] for num in ramFile.words]
+print(ramFile.words)
+print(binary_list)
 
 pc = Register(name='pc', bitwidth=16)
 sp = Register(name='sp', bitwidth=16)
 r0 = Register(name='r0', bitwidth=16)
 r1 = Register(name='r1', bitwidth=16)
 mem = MemBlock(name='mem', bitwidth=16, addrwidth=32,
-               max_read_ports=30, asynchronous=True)
-rom = RomBlock(name='rom', bitwidth=20, addrwidth=20, romdata=a.words,
+               max_read_ports=30, max_write_ports = 30, asynchronous=True)
+rom = RomBlock(name='rom', bitwidth=20, addrwidth=20, romdata=romFile.words,
                pad_with_zeros=True)  # needed for C compilation
 out = Output(name='out', bitwidth=4)
 
@@ -76,8 +85,8 @@ def dup(ofs):
     with (sp - ofs) > 0:
         val = mem[sp - ofs - 1]
         push(val)
-    with (sp - ofs) <= 0:
-        pc.next |= pc + 1
+   # with (sp - ofs) <= 0:
+        # pc.next |= pc + 1
 
 
 # In[6]:
@@ -142,55 +151,80 @@ def jnz(addr):
 
 
 def ret(flag):
-    jmp(r0)
+    pc.next |= r0
     with flag == 1:
-        push(r1)
+        mem[sp] |= r1
+        sp.next |= sp + 1
 
 
 # In[13]:
 
 
+def yank(i, j, yankCheck):
+    for counter in range(4):
+        mem[sp - i - j + counter] <<= MemBlock.EnabledWrite(mem[sp - i + counter], enable=yankCheck)
+    sp.next |= sp - j
+    pc.next |= pc + 1
+
+
+# In[14]:
+
+
 import instruction_set
 
-instr = rom[pc]
+with conditional_assignment:
+    with pc > 0x4000:
+        instr = mem[2*pc]
+    with pyrtl.otherwise:
+        instr = rom[pc]
 out <<= mem[sp]
 
 op = instr[0:4]
-
-with conditional_assignment:
-    with (op == PUSH):
-        val = instr[4:]
-        push(val)
-    with (op == POP):
-        cnt = instr[4:]
-        pop(cnt)
-    with (op == DUP):
-        ofs = instr[4:]
-        dup(ofs)
-    with (op == STOR):
-        store()
-    with (op == LOAD):
-        load()
-    with (op == JMP):
-        addr = instr[4:]
-        jmp(addr)
-    with (op == JZ):
-        addr = instr[4:]
-        jz(addr)
-    with (op == JNZ):
-        addr = instr[4:]
-        jnz(addr)
-    with (op == RET):
-        flag = instr[4:]
-        jmp(flag)
-    with (op == ALU):
-        alu_op = instr[4:]
-        alu(alu_op)
+def CPU_Function():
+    with conditional_assignment:
+        with (op == PUSH):
+            val = instr[4:20]
+            push(val)
+        with (op == POP):
+            cnt = instr[4:20]
+            pop(cnt)
+        with (op == DUP):
+            ofs = instr[4:20]
+            dup(ofs)
+        with (op == STOR):
+            store()
+        with (op == LOAD):
+            load()
+        with (op == JMP):
+            addr = instr[4:20]
+            jmp(addr)
+        with (op == JZ):
+            addr = instr[4:20]
+            jz(addr)
+        with (op == JNZ):
+            addr = instr[4:20]
+            jnz(addr)
+        with (op == RET):
+            flag = instr[4:20]
+            ret(flag)
+        with (op == ALU):
+            alu_op = instr[4:20]
+            alu(alu_op)
+        with (op == YANK):
+            index1 = instr[4:8]
+            index2 = instr[8:20]
+            yank(index1, index2, op == YANK)
     
         
 
 
-# In[14]:
+# In[15]:
+
+
+CPU_Function()
+
+
+# In[16]:
 
 
 d_sp = Output(name='d_sp', bitwidth=16)
@@ -199,11 +233,14 @@ d_r0 = Output(name='d_r0', bitwidth=16)
 d_r1 = Output(name='d_r1', bitwidth=16)
 d_instr = Output(name='d_instr', bitwidth=16)
 
+
 d_sp <<= sp
 d_pc <<= pc
 d_r0 <<= r0
 d_r1 <<= r1
 d_instr <<= instr
+
+
 
 # Debug the lowest 16 memory addresses
 d_memaddrs = range(16)
@@ -212,7 +249,7 @@ arr = Output(bitwidth=len(reads)*16, name="d_mem")
 arr <<= concat_list(reads)
 
 
-# In[15]:
+# In[17]:
 
 
 vid_y = Output(name='vid_y', bitwidth=8)
@@ -224,26 +261,26 @@ vid_y <<= 18 + vid_scan
 vid_out <<= 0xff0f0ff0000
 
 
-# In[16]:
+# In[18]:
 
 
 import os
 from simulate import CCompiledSimulation
 
 
-# In[17]:
+# In[19]:
 
 
 CCompiledSimulation(out_dir="obj")
 
 
-# In[18]:
+# In[20]:
 
 
 os.system("make")
 
 
-# In[19]:
+# In[21]:
 
 
 # If you don't have GNU make
@@ -252,14 +289,16 @@ if 0:
     os.system("g++ -pthread -Iobj --std=c++11 obj/csim.o simulate/csim_main.cpp -o bin/csim")
 
 
-# In[20]:
+# In[22]:
 
 
 os.environ['DEBUG_CPU'] = '1'
 os.environ['DEBUG_MEM'] = '1'
-os.environ['MAX_CYCLES'] = '100'
+os.environ['MAX_CYCLES'] = '1000'
 os.environ['OUT_DISPLAY'] = '0'
-os.system('bin/csim');
+arguments = ['bin/csim', 'ramFile.bin']
+arguments_str = " ".join(arguments)
+os.system(arguments_str)
 
 
 # In[ ]:
