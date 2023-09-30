@@ -193,16 +193,3 @@ def ALU_function(reg1, reg2, op):
 
 
 
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-

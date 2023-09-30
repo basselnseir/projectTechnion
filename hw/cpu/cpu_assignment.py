@@ -36,14 +36,9 @@ romFile = asm(BOOTLOADER_BLOCKS, start_addr=0)
 ramFile = asm(BLOCKS, start_addr=0)
 ramFile.save_bin('ramFile.bin')
 
-with open("ramFile.bin", "rb") as file:
-    data = file.read()
-    for byte in data:
-        bin_byte = bin(byte)
-        print(bin(byte), end=' ')
 binary_list = [bin(num)[2:] for num in ramFile.words]
-#print(ramFile.words)
-#print(binary_list)
+print(ramFile.words)
+print(binary_list)
 
 pc = Register(name='pc', bitwidth=16)
 sp = Register(name='sp', bitwidth=16)
@@ -127,11 +122,7 @@ def store():
 
 
 def jmp(addr):
-    with pc > 0x4000:
-        pc.next |= 0x5400 + addr
-    with pyrtl.otherwise:
-        pc.next |= addr
-    
+    pc.next |= addr
 
 
 # In[10]:
@@ -160,10 +151,7 @@ def jnz(addr):
 
 
 def ret(flag):
-    with pc > 0x4000:
-        pc.next |= 0x5400 + r0
-    with pyrtl.otherwise:
-        pc.next |= r0
+    pc.next |= r0
     with flag == 1:
         mem[sp] |= r1
         sp.next |= sp + 1
@@ -184,14 +172,11 @@ def yank(i, j, yankCheck):
 
 import instruction_set
 
-instr = pyrtl.WireVector(name='instr', bitwidth=20)
-
 with conditional_assignment:
     with pc > 0x4000:
-        instr |= mem[2*pc]
+        instr = mem[2*pc]
     with pyrtl.otherwise:
-        instr |= rom[pc]
-
+        instr = rom[pc]
 out <<= mem[sp]
 
 op = instr[0:4]
@@ -237,7 +222,6 @@ def CPU_Function():
 
 
 CPU_Function()
-gpio_adapter(mem, 0xc000)
 
 
 # In[16]:
@@ -247,7 +231,7 @@ d_sp = Output(name='d_sp', bitwidth=16)
 d_pc = Output(name='d_pc', bitwidth=16)
 d_r0 = Output(name='d_r0', bitwidth=16)
 d_r1 = Output(name='d_r1', bitwidth=16)
-d_instr = Output(name='d_instr', bitwidth=20)
+d_instr = Output(name='d_instr', bitwidth=16)
 
 
 d_sp <<= sp
@@ -310,7 +294,7 @@ if 0:
 
 os.environ['DEBUG_CPU'] = '1'
 os.environ['DEBUG_MEM'] = '1'
-os.environ['MAX_CYCLES'] = '10000'
+os.environ['MAX_CYCLES'] = '1000'
 os.environ['OUT_DISPLAY'] = '0'
 arguments = ['bin/csim', 'ramFile.bin']
 arguments_str = " ".join(arguments)

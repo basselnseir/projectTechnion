@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[2]:
+# In[1]:
 
 
 #import cpu_assignment
@@ -11,10 +11,10 @@ import periph
 from periph import gpio_adapter
 
 
-# In[3]:
+# In[ ]:
 
 
-BOOTLOADER_BLOCKS = ['_loop',
+BOOTLOADER_BLOCKS_tmp2 = ['_loop',
                     (PUSH, 0xc000),
                     (POP, 1),
                     LOAD,
@@ -59,6 +59,90 @@ BOOTLOADER_BLOCKS = ['_loop',
                      (RET, 0)
                     ]       
 
+
+BOOTLOADER_BLOCKS_tmp = ['_loop',
+                    (PUSH, 0xc000),
+                    (POP, 1),
+                    LOAD,
+                    (PUSH, 0xffff),
+                    (DUP, 1),
+                    (POP, 2),
+                    (ALU, AOP.SUB),
+                    (POP, 1),
+                    (JZ, '_end'),
+                    (PUSH, 0Xc001),
+                    (POP, 1),
+                    LOAD,
+                     (DUP, 0),
+                     (PUSH, 1),
+                     (POP, 2),
+                     (ALU, AOP.SUB),
+                     (PUSH, 0x5400),
+                     (POP, 2),
+                     (ALU, AOP.ADD),
+                     (PUSH, 2),
+                     (POP, 2),
+                     (ALU, AOP.MUL),
+                     (DUP, 2),
+                     (DUP, 1),
+                     (POP, 2),
+                     STOR,
+                     (PUSH, 1),
+                     (POP, 2),
+                     (ALU, AOP.ADD),
+                     (DUP, 1),
+                     (DUP, 1),
+                     (POP, 2),
+                     STOR,
+                     (POP, 1),
+                     (PUSH, 0xc003),
+                     (POP, 2),
+                     STOR,
+                     (POP, 1),
+                    (JMP, '_loop'),
+                    '_end',
+                     (POP, 1),
+                     (PUSH, 0x5400),
+                     (POP, 1),
+                     (RET, 0)
+                    ]    
+
+BOOTLOADER_BLOCKS = ['_loop',
+                    (PUSH, 0xc000),
+                    (POP, 1),
+                    LOAD,
+                    (PUSH, 0xffff),
+                    (DUP, 1),
+                    (POP, 2),
+                    (ALU, AOP.SUB),
+                    (POP, 1),
+                    (JZ, '_end'),
+                    (PUSH, 0Xc001),
+                    (POP, 1),
+                    LOAD,
+                    (DUP, 0),
+                    (PUSH, 0xc003),
+                    (POP, 2),
+                    STOR,
+                     (DUP, 0),
+                     (PUSH, 1),
+                     (POP, 2),
+                     (ALU, AOP.SUB),
+                     (PUSH, 0xb000),
+                     (POP, 2),
+                     (ALU, AOP.ADD),
+                     (DUP, 2),
+                     (DUP, 1),
+                     (POP, 2),
+                     STOR,
+                     (POP, 2),
+                     (POP, 1),
+                    (JMP, '_loop'),
+                    '_end',
+                     (POP, 1),
+                     (PUSH, 0x5800),
+                     (POP, 1),
+                     (RET, 0)]       
 
 # In[ ]:
 
