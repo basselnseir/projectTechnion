@@ -1,0 +1,71 @@
+main(0) = 0x4d; 1; 0xa808; 0xa800; 0x0; 0x0; 0x0; 0x0; 0x0; 0x0; 0x0; 0x0; 0x0; 0x0; 0x0;
+            init; wait; if $-16 - 0x4d then (if $-16 - 0x4b then (if $-16 - 0x48 then (if $-16 - 0x50 then game else setCurrDirection $-16; game)
+            else setCurrDirection $-16; game) else setCurrDirection $-16; game) else game
+
+init(0) = mem_poke 0xffff 0xa800; mem_poke 0xff 0xa808; 1
+
+game(0) = if move then (wait; if $-1 - 0x4d then (if $-1 - 0x4b then (if $-1 - 0x48 then (if $-1 - 0x50 then .game else setCurrDirection $-1; .game)
+                    else setCurrDirection $-1; .game) else setCurrDirection $-1; .game) else setCurrDirection $-1; .game) else 0
+
+move(0) = getCurrDirection; getHead; getAppleLoc;
+if $-1 - 0x4d then (
+            if $-1 - 0x4b then (
+                if $-1 - 0x48 then (
+                    if $-1 - 0x50 then 0
+                        else (if checkHeadDown $-2 then (if $-2 + 0x10 - $-3 then moveWithoutApple ($-2 + 0x10) else moveWithApple ($-2 + 0x10)) else 0)
+                    )
+                    else if checkHeadUp $-2 then (if $-2 - 0x10 - $-3 then moveWithoutApple ($-2 - 0x10) else moveWithApple ($-2 - 0x10)) else 0
+
+                )
+                else if checkHeadLeft $-2 0xa000 then (if $-2 - 0x1 - $-3 then moveWithoutApple ($-2 - 0x1) else moveWithApple ($-2 - 0x1)) else 0
+            )
+            else if checkHeadRight $-2 0xa00f then (if $-2 + 0x1 - $-3 then moveWithoutApple ($-2 + 0x1) else moveWithApple ($-2 + 0x1)) else 0
+
+checkHeadRight(2) = if $1 < 0xb000 then (if $0 - $1 then .checkHeadRight $0 ($1 + 0x10) else 0) else 1
+
+checkHeadLeft(2) = if $1 < 0xb000 then (if $0 - $1 then .checkHeadRight $0 ($1 + 0x10) else 0) else 1
+
+checkHeadUp(1) = if $0 < 0xa000 then 1 else (if 0xa00f < $0 then 1 else 0)
+
+checkHeadDown(1) = if $0 < 0xaff0 then 1 else (if 0xafff < $0 then 1 else 0)
+
+moveWithoutApple(1) = getLength; if checkBody $0 ($-2 - 1) then updateSnake $0 $-2; drawSnake; mem_poke 0x0 (mem_peek (4 + $-2)); 1 else 0
+
+moveWithApple(1) = getLength; if $-2 < 10 then (if checkBody $0 $-2 then updateSnake $0 $-2; drawSnake; setLength($-2 + 1); updateApple; 1 else 0) else 0
+
+checkBody(2) = if 0 < $1 then (if (mem_peek (3 + $1)) - $0 then checkBody $0 ($1 - 1) else 0) else 1
+
+updateSnake(2) = if 0 < $1 then mem_poke (mem_peek (3 + $1)) (4 + $1); updateSnake $0 ($1 - 1) 
+                         else mem_poke $0 0x4
+
+drawSnake(0) = getCurrDirection; getHead; if $-1 - 0x4d then if $-1 - 0x4b then if $-1 - 0x48 then if $-1 - 0x50 then 0
+                    else mem_poke 0xff $-2
+                    else mem_poke 0xff $-2
+                    else mem_poke 0xffff $-2
+                    else mem_poke 0xffff $-2
+
+updateApple(0) = (0xa000 + computeRandom (getAppleLoc - 0xa000)); getLength; if checkBody $-1 ($-2 - 1) then mem_poke $-1 0x3; mem_poke 0xff $-1 else .updateApple
+
+
+computeRandom(1) = mod (($0 * 0x1ff) + 0x1f0) 0xfff
+
+mod(2) = if $0 < $1 then $0 else .mod ($0 - $1) $1
+
+wait(0) = mem_peek 0xc001; wait_aux
+
+wait_aux(0) = 
+    if (mem_peek 0xc001) - $1 /* < access closure */
+    then mem_peek 0xc000 else .wait_aux
+
+getCurrDirection(0) = mem_peek 0x1
+setCurrDirection(1) = mem_poke $0 0x1
+
+getLength(0) = mem_peek 0x2
+setLength(1) = mem_poke $0 0x2
+
+getAppleLoc(0) = mem_peek 0x3
+
+getHead(0) = mem_peek 0x4
+
+mem_peek(1) = 1
+mem_poke(2) = 1

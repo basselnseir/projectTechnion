@@ -76,6 +76,7 @@ class IRParser:
     comp_unit = fundef[...].ignore(comment)
     
     def __call__(self, compilation_unit_text):
+        #print(compilation_unit_text)
         st = self.comp_unit.parse_string(compilation_unit_text, True)
         return [self._fundef_post(fd) for fd in st]
     
